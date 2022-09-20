@@ -1,8 +1,12 @@
 import React, {useState} from "react";
-import { Button, TextField } from '@material-ui/core';
+import { Button, colors, TextField } from '@material-ui/core';
 import { CloudUpload} from '@material-ui/icons';
-import AWS from 'aws-sdk'
 import { SalesCollection } from "../api/SalesCollection";
+import { fs } from 'fs'
+import {path} from 'path'
+import 'react-dropzone-uploader/dist/styles.css'
+import Dropzone from 'react-dropzone-uploader'
+import { getDroppedOrSelectedFiles } from 'html5-file-selector'
 // import backblaze from 'node-backblaze-b2'
 function Form(){
   
@@ -13,90 +17,135 @@ function Form(){
       customerName:'',
       customerNumber:''
     });
-    const [file, setFile] = useState();
+    var file = [];
+    var filePath = []
     var date = Date.now()
     function insertSales(sale){
       return SalesCollection.insert(sale)
     }
-    const handleChange = (e) => {
-        const [f] = e.target.files;
-        setFile(f);
+    // File Upload
+    const fileParams = ({ meta }) => {
+      return { url: 'https://httpbin.org/post' }
+  }
+  const onFileChange = ({ meta, file }, status) => { 
+      console.log(status, meta, file) 
+  }
+  const onSubmit = (files, allFiles) => {
+    filePath = []
+    file = []
+    
+    
+      allFiles.forEach((f) =>{
+        const reader = new FileReader()
         console.log(f)
-      };
+      const blob = new Blob([f])
+      reader.onabort = () => console.log('file reading was aborted')
+      reader.onerror = () => console.log('file reading has failed')
+      reader.onload = () => {
+      
+        const binaryStr = reader.result
+         file.push(binaryStr)
+         console.log(file)
+      }
+      if(blob){
+        reader.readAsDataURL(blob)
+      }
+        var filePath_ = `${date}_${f.file.name}`
+        filePath.push(filePath_)
+       
+      })
+      allFiles.forEach(f => {
+        
+        f.remove()
+      })
+      console.log(filePath)
+      setTimeout(() => {
+        console.log(file)
+      }, 1000);
+     
+  }
+  const getFilesFromEvent = e => {
+      return new Promise(resolve => {
+          getDroppedOrSelectedFiles(e).then(chosenFiles => {
+              resolve(chosenFiles.map(f => f.fileObject))
+          })
+      })
+  }
+  const selectFileInput = ({ accept, onFiles, files, getFilesFromEvent }) => {
+      const textMsg = files.length > 0 ? 'Upload Again' : 'Select Files'
+      return (
+          <label className="btn btn-danger mt-4">
+              {textMsg}
+              <input
+                  style={{ display: 'none' }}
+                  type="file"
+                  accept={accept}
+                  multiple
+                  onChange={e => {
+                      getFilesFromEvent(e).then(chosenFiles => {
+                          onFiles(chosenFiles)
+                      })
+                  }}
+              />
+          </label>
+      )
+  }
       
     async function GetBucket() {
-      AWS.config.update({
-        accessKeyId: 'a7beeec896bd',
-        secretAccessKey: '0042089a340f9665fdb9d667b1c153244817483816'
-      });
-      var b2 = new AWS.S3({endpoint: 's3.us-west-004.backblazeb2.com'});
-      var params = {
-        Bucket: 'salesBucket',
-        Body : file,
-        Key : 'bucketitem1'
-      };
-      var req = b2.putObject(params)
-      req.on('build',function(req){
-        req.httpRequest.headers['Access-Control-Allow-Origin'] = 'http://localhost:3000';
-      });
-      req.send(function (err, data) {
-        //handle error
+      Meteor.call('uploadSalesImage', {file,filePath}, (err, res) => {
         if (err) {
-          console.log("Error", err);
+          alert(err);
+        } else {
+          // success!
+          alert('success')
         }
-      
-        //success
-        if (data) {
-          console.log("Uploaded in:", data.Location);
+      })
         }
-      });
-        // try{
-        //   let response = await b2.listObjects({ bucketName: 'salesBucket' });
-        //   console.log(response);
-        // } catch (err) {
-        //   console.log('Error getting bucket:', err);
-        // }
-        // // b2.createBucket({Bucket: 'bucketName'}, function() {
-        // //   var params = {Bucket: 'bucketName', Key: 'keyName', Body: 'Hello World!'};
-        // //   b2.putObject(params, function(err, data) {
-        // //   if (err)
-        // //   console.log(err)
-        // //   else
-        // //   console.log("Successfully uploaded data to " + 'bucketName' + "/" + keyName);
-        // //   });
-        // //   });
-        }
-      const handleUpload = ()=>{
-        GetBucket();
-      }
+
       const handleSubmit= ()=>{
+        customer.imageUrl=filePath;
         console.log(customer);
         insertSales(customer);
       }
+      const upl = Meteor.call('GetBucket',file, (error, result) => { console.log('done') })
     return(
         <div style={styles.body}>
             
         <div style={styles.container}>
         
             <div style={styles.inner_container}>
-            <h2>EAGM Salesman Bebesha App</h2>
-                <div>Enter the details of the sale</div>
-               <Button onClick={handleUpload}><CloudUpload></CloudUpload>Upload</Button> 
-                <Button><input onChange={handleChange} type="file"/></Button> 
-                <label>  </label>
+            <h2>EAGM Salesman Bebesha App</h2><br />
+                <div>Drag and drop or select an image of the receipt</div>
+               
+                <Dropzone
+            onSubmit={onSubmit}
+            onChangeStatus={onFileChange}
+            InputComponent={selectFileInput}
+            getUploadParams={fileParams}
+            getFilesFromEvent={getFilesFromEvent}
+            accept="image/*"
+            maxFiles={5}
+            inputContent="Drop A File"
+            styles={{
+                dropzone: { width: 500, height: 200 },
+                dropzoneActive: { borderColor: 'green' },
+            }}            
+        /> <br />
+        <Button onClick={()=>GetBucket()}><CloudUpload></CloudUpload>Upload Images</Button>  
+        <br /><br />
+                <TextField label='Enter Amount' variant="outlined" type="text" value={customer.amount} onChange={(e)=>{setCustomer({...customer,amount: e.target.value})}}></TextField> <br /><br />
+               
+               
+                <TextField  label= 'Enter Store Name' variant="outlined" value={customer.storeName} onChange={(e)=>{setCustomer({...customer,storeName: e.target.value})}} ></TextField> <br />
                 <br />
                 
-                <label htmlFor="">Enter Amount:  </label>   <TextField  type="text" value={customer.amount} onChange={(e)=>{setCustomer({...customer,amount: e.target.value})}}></TextField> <br /><br />
+                <TextField label='Customer Name' variant="outlined" value={customer.customerName} onChange={(e)=>{setCustomer({...customer,customerName: e.target.value})}}></TextField> <br />
+                <br />
+                <TextField label='Customer Phone Number' variant="outlined" value={customer.customerNumber} type='number' onChange={(e)=>{setCustomer({...customer,customerNumber: e.target.value})}}></TextField> <br />
+                {/* <p>{date}</p> */} <br />
                 
-                <label htmlFor="">Enter Store Name:  </label> 
-                <TextField  value={customer.storeName} onChange={(e)=>{setCustomer({...customer,storeName: e.target.value})}} ></TextField> <br />
-                <h5>Customer Details</h5>
-                <label htmlFor="">Enter Customer Name:  </label>
-                <TextField  value={customer.customerName} onChange={(e)=>{setCustomer({...customer,customerName: e.target.value})}}></TextField> <br />
-                <label htmlFor="">Enter Customer Number:  </label>
-                <TextField  value={customer.customerNumber} type='number' onChange={(e)=>{setCustomer({...customer,customerNumber: e.target.value})}}></TextField> <br />
-                <p>{date}</p>
-                <Button onClick={handleSubmit}>Submit</Button>
+                <img src={file} alt="Image" />
+                <Button style={{backgroundColor:'blue',color:'white'}} onClick={handleSubmit}>Submit</Button>
             </div>
             </div>
         </div>
@@ -104,6 +153,7 @@ function Form(){
 
 
 }
+
 export default Form;
 const styles = {
     body:{

@@ -2,3 +2,26 @@ body {
   padding: 10px;
   font-family: sans-serif;
 }
+.header {
+  padding: 10px;
+  background: #edf2f4;
+  border-bottom: 1px solid #999;
+  display: flex;
+  justify-content: space-around;
+}
+.h
+.header a {
+  color: #0072ff;
+  text-decoration: none;
+  margin-left: 20px;
+  margin-right: 5px;
+}
+.header a:hover {
+  color: #8a0f53;
+}
+.header small {
+  color: #666;
+}
+.header .active {
+  color: #2c7613;
+}
