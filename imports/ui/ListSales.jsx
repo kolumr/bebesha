@@ -1,15 +1,15 @@
 import { Button } from '@material-ui/core'
 import React from 'react'
 import { SalesCollection } from '../api/SalesCollection'
-import Table from 'react-bootstrap/Table';
 import { useEffect } from 'react';
 import { useState } from 'react';
-import { Search } from '@material-ui/icons';
+
 
 export default function ListSales() {
     const [loading,setLoading] = useState(true);
     const [sales,setSales] = useState('')
-    const filePath = 'CAPTURE.PNG'
+    const [data,setData] = useState()
+    const filePath = 'localhost_3000_.png'
     useEffect(()=>{
         console.log("getting sales")
         getSales();
@@ -21,46 +21,59 @@ export default function ListSales() {
         await setSales(sales1);
         setLoading(false);
     }
-    const getImage =()=>{
-        Meteor.call('fetchImage',{filePath},(err, res) => {
+    const getImage = async()=>{
+       await Meteor.call('fetchImage',{filePath},(err, res) => {
             if (err) {
               alert(err);
             } else {
               // success!
               alert('success')
+             
             }
           })
             }
+            const chooseFile = document.getElementById("choose-file");
+            const imgPreview = document.getElementById("img-preview");
+            
+            function getImgData() {
+              const files = chooseFile.files[0];
+              if (files) {
+                console.log(files)
+                const fileReader = new FileReader();
+                fileReader.readAsDataURL(files);
+                fileReader.addEventListener("load", function () {
+                  console.log(this.result)
+                  imgPreview.style.display = "block";
+                  imgPreview.innerHTML = '<img src="' + sales[13].imageUrl[0] + '" />';
+                });    
+              }
+            }
 
   return (
-    <div>
-    <div>ListSales</div>
+    <div >
+   
     {loading? <div>Loading....</div>:(
-    <Table bordered size='sm' >
-            <thead>
-                <tr>
-                    <td>Amount</td>
-                    <td>Customer Name</td>
-                    <td>Customer Phone Number</td>
-                    <td>Store Name</td>
-                </tr>
-                
-            </thead>
-            <tbody>
+      <div class="container" >
+        <div class="row" style={{height:'60px'}}>
+        <div class="col-sm">Amount</div>
+        <div class="col-sm">Customer Name</div>
+        <div class="col-sm"> Customer Number</div>
+        <div class="col-sm">Store Name</div>
+        <div class="col-sm" >Receipt</div>
+        </div>
              { sales.map((e) =>{
                 return(
-                <tr key={e.id}>
-                    <td>{e.amount}</td>
-                    <td>{e.customerName}</td>
-                    <td>{e.customerNumber}</td>
-                    <td>{e.storeName}</td>
-                </tr>)
+                <div key={e.id} class="row">
+                    <div class="col-sm">{e.amount}</div>
+                    <div class="col-sm">{e.customerName}</div>
+                    <div class="col-sm">{e.customerNumber}</div>
+                    <div class="col-sm">{e.storeName}</div>
+                    <div class="col-sm" id='sales-image'><img src={e.imageUrl[0]} style={{height:'60px',width:'50px'}}></img></div>
+                </div>)
              })
                 }
-            </tbody>
-        </Table>)}
-    <Button onClick={getImage}>GetImage</Button>
-    <img src="data:application/octet-stream;base64,W29iamVjdCBPYmplY3Rd" alt="Image gone wrong" />
+        </div>
+        )}
     </div>
   )
 }

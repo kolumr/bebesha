@@ -2,10 +2,12 @@ import { Meteor } from 'meteor/meteor';
 import {SalesCollection}  from '/imports/api/SalesCollection'
 import { WebApp } from 'meteor/webapp'
 import cors from 'cors'
-import AWS, { S3 } from 'aws-sdk'
+const fs = require('fs')
+import AWS from 'aws-sdk'
 export function insertSales(sale){
   return SalesCollection.insert(sale)
 }
+
 const awsUpdate = AWS.config.update({
   accessKeyId: '004a7beeec896bd0000000001',
   secretAccessKey: 'K004LL/q2OOuaVGMo/Xmlu+lftFzal4'
@@ -28,48 +30,47 @@ WebApp.connectHandlers.use(cors(corsOptions))
 });
 Meteor.methods({
   'uploadSalesImage'({file,filePath}){
-    console.log('started')
     awsUpdate
-    var b2 = new AWS.S3({endpoint: 's3.us-west-004.backblazeb2.com'});
+    var s3 = new AWS.S3({endpoint:'s3.us-west-004.backblazeb2.com'});
     file.forEach((f,index)=>{
       var params = {
         Bucket: 'salesBucket',
+        Key : filePath[index][0],
         Body : f,
-        Key : filePath[index]
+        ContentType: filePath[index][1],
+        ACL : 'public-read'
       };
-      var req = b2.upload(params)
-      req.on('build',function(req){
-        req.httpRequest.headers['Access-Control-Allow-Origin'] = 'http://localhost:3000';
-      });
-      req.send(function (err, data) {
-        //handle error
-        if (err) {
-          console.log("Error", err);
-        }
-      
-        //success
-        if (data) {
-          console.log(filePath[index], "Uploaded in:", data.ETag);
-        }
-      });
+      s3.upload(params, function(err, data) {
+        if (err)
+        console.log(err)
+        else
+        // console.log("Successfully uploaded data to " + data.ETag);
+        console.log(data)
+        });
     })
     
   },
-'fetchImage'({filePath}){
-  var s3 = new S3()
+async 'fetchImage'({filePath}){
+  let result;
+  awsUpdate
+  var s3 = new AWS.S3({endpoint:'s3.us-west-004.backblazeb2.com'});
   var params={
     Bucket: 'salesBucket',
     Key:filePath
   }
   s3.getObject(params, function(err, data) {
-    awsUpdate
+   
     if (err) {
      console.log(err);
     } else {
-     resolve(data.Body);
-     console.log(data.Body)
+      console.log('success')
+      result= data
+     return data
+     
     }
    });
-}
+   return result;
+},
+
 })
 

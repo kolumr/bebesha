@@ -4,12 +4,13 @@ import { CloudUpload} from '@material-ui/icons';
 import { SalesCollection } from "../api/SalesCollection";
 import { fs } from 'fs'
 import {path} from 'path'
+import { Slingshot } from 'meteor/edgee:slingshot';
 import 'react-dropzone-uploader/dist/styles.css'
 import Dropzone from 'react-dropzone-uploader'
 import { getDroppedOrSelectedFiles } from 'html5-file-selector'
-// import backblaze from 'node-backblaze-b2'
-function Form(){
-  
+
+function Form(props){
+  var base64data;
     const[customer, setCustomer] = useState({
       imageUrl:'',
       amount:'',
@@ -17,13 +18,18 @@ function Form(){
       customerName:'',
       customerNumber:''
     });
-    var file = [];
+    
+    // const [file,setFile] = useState()
+    // const [filePath, setFilePath] = useState()
+    var file =[]
     var filePath = []
     var date = Date.now()
+
     function insertSales(sale){
       return SalesCollection.insert(sale)
     }
     // File Upload
+    
     const fileParams = ({ meta }) => {
       return { url: 'https://httpbin.org/post' }
   }
@@ -31,14 +37,10 @@ function Form(){
       console.log(status, meta, file) 
   }
   const onSubmit = (files, allFiles) => {
+    file =[]
     filePath = []
-    file = []
-    
-    
       allFiles.forEach((f) =>{
         const reader = new FileReader()
-        console.log(f)
-      const blob = new Blob([f])
       reader.onabort = () => console.log('file reading was aborted')
       reader.onerror = () => console.log('file reading has failed')
       reader.onload = () => {
@@ -47,21 +49,21 @@ function Form(){
          file.push(binaryStr)
          console.log(file)
       }
-      if(blob){
-        reader.readAsDataURL(blob)
+      if(f.file){
+        reader.readAsDataURL(f.file)
       }
         var filePath_ = `${date}_${f.file.name}`
-        filePath.push(filePath_)
-       
+        filePath.push([filePath_,f.file.type])
+       console.log(filePath)
       })
       allFiles.forEach(f => {
         
         f.remove()
       })
-      console.log(filePath)
-      setTimeout(() => {
-        console.log(file)
-      }, 1000);
+      // console.log(filePath)
+      // setTimeout(() => {
+      //   console.log(file)
+      // }, 1000);
      
   }
   const getFilesFromEvent = e => {
@@ -100,10 +102,11 @@ function Form(){
           alert('success')
         }
       })
+ 
         }
 
-      const handleSubmit= ()=>{
-        customer.imageUrl=filePath;
+      const handleSubmits= ()=>{
+        customer.imageUrl=file;
         console.log(customer);
         insertSales(customer);
       }
@@ -115,8 +118,9 @@ function Form(){
         
             <div style={styles.inner_container}>
             <h2>EAGM Salesman Bebesha App</h2><br />
+            <form action="/upolad" method="post" encType="multipart/form-data">
                 <div>Drag and drop or select an image of the receipt</div>
-               
+             
                 <Dropzone
             onSubmit={onSubmit}
             onChangeStatus={onFileChange}
@@ -131,8 +135,11 @@ function Form(){
                 dropzoneActive: { borderColor: 'green' },
             }}            
         /> <br />
-        <Button onClick={()=>GetBucket()}><CloudUpload></CloudUpload>Upload Images</Button>  
-        <br /><br />
+        
+        
+        {/* <Button onClick={GetBucket}><CloudUpload></CloudUpload>Upload Images</Button>   */}
+        </form>
+        {/* <br /><br /> */}
                 <TextField label='Enter Amount' variant="outlined" type="text" value={customer.amount} onChange={(e)=>{setCustomer({...customer,amount: e.target.value})}}></TextField> <br /><br />
                
                
@@ -144,8 +151,9 @@ function Form(){
                 <TextField label='Customer Phone Number' variant="outlined" value={customer.customerNumber} type='number' onChange={(e)=>{setCustomer({...customer,customerNumber: e.target.value})}}></TextField> <br />
                 {/* <p>{date}</p> */} <br />
                 
-                <img src={file} alt="Image" />
-                <Button style={{backgroundColor:'blue',color:'white'}} onClick={handleSubmit}>Submit</Button>
+                
+                <Button style={{backgroundColor:'blue',color:'white'}} onClick={handleSubmits}>Submit</Button>
+               
             </div>
             </div>
         </div>
