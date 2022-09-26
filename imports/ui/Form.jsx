@@ -1,22 +1,20 @@
 import React, {useState} from "react";
-import { Button, colors, TextField } from '@material-ui/core';
-import { CloudUpload} from '@material-ui/icons';
+import { Button, TextField } from '@material-ui/core';
 import { SalesCollection } from "../api/SalesCollection";
-import { fs } from 'fs'
-import {path} from 'path'
-import { Slingshot } from 'meteor/edgee:slingshot';
 import 'react-dropzone-uploader/dist/styles.css'
 import Dropzone from 'react-dropzone-uploader'
 import { getDroppedOrSelectedFiles } from 'html5-file-selector'
-
+export const stores = ['Chandarana','Cleanshelf','Naivas']
+export const  regions = ['Nairobi','Kisumu','Mombasa']
 function Form(props){
-  var base64data;
+
     const[customer, setCustomer] = useState({
       imageUrl:'',
       amount:'',
       storeName:'',
       customerName:'',
-      customerNumber:''
+      customerNumber:'',
+      region:''
     });
     
     // const [file,setFile] = useState()
@@ -24,7 +22,7 @@ function Form(props){
     var file =[]
     var filePath = []
     var date = Date.now()
-
+   
     function insertSales(sale){
       return SalesCollection.insert(sale)
     }
@@ -36,10 +34,10 @@ function Form(props){
   const onFileChange = ({ meta, file }, status) => { 
       console.log(status, meta, file) 
   }
-  const onSubmit = (files, allFiles) => {
+  const handleImage = (e) => {
+    console.log(e.target.files[0])
     file =[]
     filePath = []
-      allFiles.forEach((f) =>{
         const reader = new FileReader()
       reader.onabort = () => console.log('file reading was aborted')
       reader.onerror = () => console.log('file reading has failed')
@@ -47,25 +45,22 @@ function Form(props){
       
         const binaryStr = reader.result
          file.push(binaryStr)
-         console.log(file)
+         customer.imageUrl= binaryStr;
       }
-      if(f.file){
-        reader.readAsDataURL(f.file)
+      if(e.target.files[0]){
+        reader.readAsDataURL(e.target.files[0])
       }
-        var filePath_ = `${date}_${f.file.name}`
-        filePath.push([filePath_,f.file.type])
+        var filePath_ = `${date}_${e.target.files[0].name}`
+        filePath.push([filePath_,e.target.files[0].type])
        console.log(filePath)
-      })
-      allFiles.forEach(f => {
-        
-        f.remove()
-      })
+      }
+      
       // console.log(filePath)
       // setTimeout(() => {
       //   console.log(file)
       // }, 1000);
      
-  }
+  
   const getFilesFromEvent = e => {
       return new Promise(resolve => {
           getDroppedOrSelectedFiles(e).then(chosenFiles => {
@@ -106,9 +101,22 @@ function Form(props){
         }
 
       const handleSubmits= ()=>{
-        customer.imageUrl=file;
+        if (customer.amount.length === 0) return alert( 'Amount is missing');
+        if (customer.storeName.length === 0) return alert( 'Select store');
+        if (customer.customerName.length === 0) return alert( 'Customer Name is missing');
+        if (customer.customerNumber.length === 0) return alert( 'Phone number is missing');
+        if (customer.region.length === 0) return alert( 'Select region');
+        
         console.log(customer);
         insertSales(customer);
+        setCustomer({
+          imageUrl:'',
+          amount:'',
+          storeName:'',
+          customerName:'',
+          customerNumber:'',
+          region:''
+        })
       }
       const upl = Meteor.call('GetBucket',file, (error, result) => { console.log('done') })
     return(
@@ -119,9 +127,9 @@ function Form(props){
             <div style={styles.inner_container}>
             <h2>EAGM Salesman Bebesha App</h2><br />
             <form action="/upolad" method="post" encType="multipart/form-data">
-                <div>Drag and drop or select an image of the receipt</div>
-             
-                <Dropzone
+                <div>Select the image of the receipt</div>
+             <br />
+                {/* <Dropzone
             onSubmit={onSubmit}
             onChangeStatus={onFileChange}
             InputComponent={selectFileInput}
@@ -135,23 +143,38 @@ function Form(props){
                 dropzoneActive: { borderColor: 'green' },
             }}            
         /> <br />
-        
+         */}
         
         {/* <Button onClick={GetBucket}><CloudUpload></CloudUpload>Upload Images</Button>   */}
         </form>
         {/* <br /><br /> */}
-                <TextField label='Enter Amount' variant="outlined" type="text" value={customer.amount} onChange={(e)=>{setCustomer({...customer,amount: e.target.value})}}></TextField> <br /><br />
+
+        <input type='file' onChange={(e)=>handleImage(e)} ></input><br /><br />
+                <TextField label='Enter Amount' variant="outlined" type="number" value={customer.amount} onChange={(e)=>{setCustomer({...customer,amount: e.target.value})}}></TextField> <br /><br />
                
                
-                <TextField  label= 'Enter Store Name' variant="outlined" value={customer.storeName} onChange={(e)=>{setCustomer({...customer,storeName: e.target.value})}} ></TextField> <br />
+              <select onChange={(e)=>{setCustomer({...customer,storeName: e.target.value})}} value={customer.storeName}>
+                <option>--Select Store--</option>
+                {stores.map((s,i)=>{
+                  return <option key={i} value={s}>{s}</option>
+                })}
+              </select>
+                 <br />
                 <br />
                 
                 <TextField label='Customer Name' variant="outlined" value={customer.customerName} onChange={(e)=>{setCustomer({...customer,customerName: e.target.value})}}></TextField> <br />
                 <br />
                 <TextField label='Customer Phone Number' variant="outlined" value={customer.customerNumber} type='number' onChange={(e)=>{setCustomer({...customer,customerNumber: e.target.value})}}></TextField> <br />
-                {/* <p>{date}</p> */} <br />
-                
-                
+
+                {/* <p>{date}</p> <br /> */}
+                <br />
+                <select onChange={(e)=>{setCustomer({...customer,region: e.target.value})}} value={customer.region}>
+                <option>--Select Region--</option>
+                {regions.map((s,i)=>{
+                  return <option key={i} value={s}>{s}</option>
+                })}
+              </select>
+              <br /><br />
                 <Button style={{backgroundColor:'blue',color:'white'}} onClick={handleSubmits}>Submit</Button>
                
             </div>
